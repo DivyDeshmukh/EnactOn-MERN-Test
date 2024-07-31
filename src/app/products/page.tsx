@@ -13,15 +13,35 @@ export default async function Products({
 }: {
   searchParams?: { [key: string]: string | string[] | undefined };
 }) {
-  const { page = 1, pageSize = DEFAULT_PAGE_SIZE } = searchParams as any;
+  const {
+    page = 1,
+    pageSize = DEFAULT_PAGE_SIZE,
+    priceRangeTo,
+    categoryId,
+    brandId,
+    gender,
+    occassions,
+    discount,
+    sortBy,
+  } = searchParams as any;
 
   const { products, lastPage, numOfResultsOnCurPage } = await getProducts(
     +page,
-    +pageSize
+    +pageSize,
+    priceRangeTo,
+    categoryId,
+    brandId,
+    gender,
+    occassions,
+    discount,
+    sortBy
   );
+  // console.log("SearchParms: ", priceRangeTo);
+  console.log();
 
   const brands = await getBrands();
   const categories = await getCategories();
+  console.log(products.length, pageSize);
 
   return (
     <div className="pb-20 pt-8">

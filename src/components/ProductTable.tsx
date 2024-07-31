@@ -17,7 +17,6 @@ async function ProductTable({ products, numOfResultsOnCurPage }) {
       brandsArr.add(productBrand);
     });
   }
-
   const brandsId = [...brandsArr];
   const brandsMap = await MapBrandIdsToName(brandsId);
   const productCategories = await getAllProductCategories(products);

@@ -1,6 +1,8 @@
 "use client";
 
+import { useQueryParams } from "@/hooks/useQueryParams";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, useEffect, useState } from "react";
 
 const sortingOptions = [
   { value: "price-asc", label: "Sort by price(asc)" },
@@ -13,8 +15,31 @@ const sortingOptions = [
 
 function SortBy() {
   const router = useRouter();
-  const params = useSearchParams();
-  const searchParams = new URLSearchParams(params);
+  const searchParams = useQueryParams();
+  const [selectedOption, setSelectedOption] = useState(() => {
+    if (searchParams.get("sortBy")) {
+      console.log(searchParams.get("sortBy"));
+      return searchParams.get("sortBy") || "";
+    }
+  });
+
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    console.log(e.target.value);
+    const selectedVal = e.target.value;
+    if (!selectedVal) {
+      searchParams.delete("sortBy");
+      setSelectedOption("");
+      router.push(`/products?${searchParams.toString()}`);
+      return;
+    }
+
+    setSelectedOption(e.target.value);
+    searchParams.delete("page");
+    searchParams.delete("pageSize");
+    const sortCondition = selectedVal;
+    searchParams.set("sortBy", sortCondition);
+    router.push(`/products?${searchParams.toString()}`);
+  };
 
   return (
     <div className="text-black flex gap-2">
@@ -22,10 +47,8 @@ function SortBy() {
       <select
         name="sorting"
         id="sorting"
-        value={String(searchParams.get("sortBy"))}
-        onChange={(e) => {
-          alert("Please update the code.");
-        }}
+        value={selectedOption}
+        onChange={handleChange}
       >
         <option value="">None</option>
         {sortingOptions.map((option, i) => {

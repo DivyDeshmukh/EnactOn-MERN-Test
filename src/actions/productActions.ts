@@ -4,21 +4,90 @@
 import { sql } from "kysely";
 import { DEFAULT_PAGE_SIZE } from "../../constant";
 import { db } from "../../db";
-import { InsertProducts, UpdateProducts } from "@/types";
+import { InsertProducts, Products, UpdateProducts } from "@/types";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/utils/authOptions";
 import { cache } from "react";
 
-export async function getProducts(pageNo = 1, pageSize = DEFAULT_PAGE_SIZE) {
+export async function getProducts(
+  pageNo = 1,
+  pageSize = DEFAULT_PAGE_SIZE,
+  priceRangeTo,
+  categoryIds,
+  brandIds,
+  gender,
+  occassions,
+  discount,
+  sortBy
+) {
   try {
     let products;
     let dbQuery = db.selectFrom("products").selectAll("products");
 
-    const { count } = await dbQuery
-      // .select(sql`COUNT(DISTINCT products.id) as count`)
-      .executeTakeFirst();
+    if (priceRangeTo !== undefined) {
+      dbQuery = dbQuery.where("price", "<=", priceRangeTo);
+    }
+
+    // if (categoryIds) {
+    // const categoryIdsArray = categoryIds
+    //   .split(",")
+    //   .map((id) => parseInt(id, 10));
+    //   dbQuery = dbQuery
+    //     .innerJoin(
+    //       "product_categories",
+    //       "product.id",
+    //       "product_categories.product_id"
+    //     )
+    //     .where("product_categories.category_id", "in", categoryIdsArray);
+    //   // console.log("CategoryIds:", categoryIds, "DbQuery: ", dbQuery);
+    //   console.log(categoryIdsArray);
+    // }
+
+    // if (brandIds) {
+    //   console.log("BrandIds: ", brandIds);
+    //   const brandIdsArray = brandIds.split(",").map((id) => parseInt(id, 10));
+    //   console.log("BrandIds: ", brandIdsArray);
+    // dbQuery = dbQuery.where(sql`FIND_IN_SET(brands, ${brandIdsArray})`);
+    // }
+
+    if (gender) {
+      dbQuery = dbQuery.where("gender", "=", gender);
+    }
+
+    if (occassions) {
+      // const occassionsArray = occassions.split(",");
+      console.log("Occassions: ", occassions);
+      // TODO: Query
+      dbQuery = dbQuery.where("occasion", "=", occassions);
+    }
+
+    if (discount) {
+      console.log("Discount: ", discount.split("-")[1]);
+      const start = +discount.split("-")[0];
+      const end = +discount.split("-")[1];
+
+      dbQuery = dbQuery.where((eb) => eb.between("discount", start, end));
+    }
+
+    if (sortBy) {
+      const [column, order] = sortBy.split("-");
+      console.log(column, order);
+      dbQuery = dbQuery.orderBy(column, order);
+    }
+    console.log(dbQuery);
+
+    const countResult = await dbQuery.execute();
+    // const countResult = dbQuery
+    //   .where(priceRangeTo !== undefined ? "price <= " + priceRangeTo : sql`1=1`) // Apply same filters
+    //   .where(gender ? "gender = " + gender : sql`1=1`)
+    //   .where(occassions ? "occasion = " + occassions : sql`1=1`)
+    //   .where(discount ? sql`discount BETWEEN ${start} AND ${end}` : sql`1=1`)
+    //   .select((eb) => eb.fn.countAll());
+
+    const count = countResult.length || 0;
 
     const lastPage = Math.ceil(count / pageSize);
+    console.log("Count:", countResult.length + 1, "lastPage: ", lastPage);
 
     products = await dbQuery
       .distinct()
@@ -141,6 +210,52 @@ export async function getProductCategories(productId: number) {
       .execute();
 
     return categories;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function addProduct(productData: Products): {
+  insertId: number | bigint;
+} {
+  console.log("ProductData: ", productData);
+  const {
+    name,
+    description,
+    price,
+    rating,
+    old_price,
+    discount,
+    colors,
+    brands,
+    gender,
+    occasion,
+    image_url,
+  } = productData;
+  console.log("name:", name);
+
+  try {
+    const add = await db
+      .insertInto("products")
+      .values({
+        name,
+        description,
+        price,
+        rating,
+        old_price,
+        discount,
+        colors,
+        brands,
+        gender,
+        occasion,
+        image_url,
+      })
+      .executeTakeFirst();
+    console.log("add: ", add);
+
+    return {
+      insertId: add.insertId,
+    };
   } catch (error) {
     throw error;
   }

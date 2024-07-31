@@ -1,28 +1,41 @@
 "use client";
 
+import { useQueryParams } from "@/hooks/useQueryParams";
 import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent } from "react";
 
 function PaginationSection({
   lastPage,
   pageNo,
   pageSize,
-}: {
+}: // totalProducts,
+{
   lastPage: number;
   pageNo: number;
   pageSize: number;
+  // totalProducts: number;
 }) {
   const router = useRouter();
 
-  const query = useSearchParams();
-  const searchParams = new URLSearchParams(query);
+  const searchParams = useQueryParams();
 
   function handlePrev() {
-    alert("Please update the code.");
+    searchParams.set("page", `${pageNo - 1}`);
+    router.push(`/products?${searchParams.toString()}`);
   }
 
   function handleNext() {
-    alert("Please update the code.");
+    searchParams.set("page", `${pageNo + 1}`);
+    router.push(`/products?${searchParams.toString()}`);
   }
+
+  const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    console.log(e.target.value);
+    searchParams.delete("page");
+    searchParams.set("pageSize", e.target.value);
+    // searchParams.set("lastPage", `${totalProducts / pageSize}`); // totalResults/CurrPageResults
+    router.push(`/products?${searchParams.toString()}`);
+  };
 
   return (
     <div className="mt-12 p-4 bg-gray-800 flex justify-center gap-4 items-center mb-8">
@@ -31,7 +44,7 @@ function PaginationSection({
         name="page-size"
         className="text-black"
         onChange={(e) => {
-          alert("Please update the code.");
+          handleChange(e);
         }}
       >
         {["10", "25", "50"].map((val) => {

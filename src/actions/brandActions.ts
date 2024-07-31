@@ -13,6 +13,7 @@ export async function getBrands({ sortDesc = false } = {}) {
     }
 
     const brands = await dbQuery.execute();
+    // console.log("Brand: ", brands);
 
     return brands;
   } catch (error) {
