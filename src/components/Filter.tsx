@@ -231,13 +231,13 @@ function Filter({ categories, brands }) {
 
   const handleGenderChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedVal = e.target.value;
-    // if (!selectedVal) {
-    //   console.log(typeof e.target.value);
-    //   searchParams.delete("gender");
-    //   setSelectedGender(selectedVal);
-    //   router.push(`/products?${searchParams.toString()}`, { scroll: false });
-    //   return;
-    // }
+    if (!selectedVal) {
+      console.log(typeof e.target.value);
+      searchParams.delete("gender");
+      setSelectedGender(selectedVal);
+      router.push(`/products?${searchParams.toString()}`, { scroll: false });
+      return;
+    }
     setSelectedGender(selectedVal);
   };
 

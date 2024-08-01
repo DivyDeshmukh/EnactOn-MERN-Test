@@ -4,7 +4,12 @@
 import { sql } from "kysely";
 import { DEFAULT_PAGE_SIZE } from "../../constant";
 import { db } from "../../db";
-import { InsertProducts, Products, UpdateProducts } from "@/types";
+import {
+  InsertProductCategoriesInput,
+  InsertProducts,
+  Products,
+  UpdateProducts,
+} from "@/types";
 import { revalidatePath } from "next/cache";
 import { authOptions } from "@/utils/authOptions";
 import { cache } from "react";
@@ -28,41 +33,53 @@ export async function getProducts(
       dbQuery = dbQuery.where("price", "<=", priceRangeTo);
     }
 
-    // if (categoryIds) {
-    // const categoryIdsArray = categoryIds
-    //   .split(",")
-    //   .map((id) => parseInt(id, 10));
-    //   dbQuery = dbQuery
-    //     .innerJoin(
-    //       "product_categories",
-    //       "product.id",
-    //       "product_categories.product_id"
-    //     )
-    //     .where("product_categories.category_id", "in", categoryIdsArray);
-    //   // console.log("CategoryIds:", categoryIds, "DbQuery: ", dbQuery);
-    //   console.log(categoryIdsArray);
-    // }
+    if (categoryIds) {
+      console.log(categoryIds);
 
-    // if (brandIds) {
-    //   console.log("BrandIds: ", brandIds);
-    //   const brandIdsArray = brandIds.split(",").map((id) => parseInt(id, 10));
-    //   console.log("BrandIds: ", brandIdsArray);
-    // dbQuery = dbQuery.where(sql`FIND_IN_SET(brands, ${brandIdsArray})`);
-    // }
+      const categoryIdsArray = categoryIds
+        .split(",")
+        .map((id) => parseInt(id, 10));
+      dbQuery = dbQuery
+        .innerJoin(
+          "product_categories",
+          "products.id",
+          "product_categories.product_id"
+        )
+        .where("product_categories.category_id", "in", categoryIdsArray)
+        .groupBy("products.id");
+      // console.log("CategoryIds:", categoryIds, "DbQuery: ", dbQuery);
+      console.log("CategoryIds: ", categoryIdsArray);
+    }
+
+    if (brandIds) {
+      // Add the dynamic JSON_CONTAINS conditions
+      // brandIdsArray.forEach((value, index) => {
+      //   if (index === 0) {
+      //     dbQuery = dbQuery.where(sql`JSON_CONTAINS(brands, ${value}, '$')`);
+      //   } else {
+      //     dbQuery = dbQuery.orWhere(sql`JSON_CONTAINS(brands, ${value}, '$')`);
+      //   }
+      // });
+      const brandIdsArray = brandIds.split(",").map((id) => id.trim());
+      // console.log("BrandsIdsArray: ", brandIdsArray);
+      brandIdsArray.forEach((id) => {
+        dbQuery = dbQuery.where(sql`JSON_CONTAINS(brands, (${id}), '$')`);
+      });
+    }
 
     if (gender) {
       dbQuery = dbQuery.where("gender", "=", gender);
     }
 
     if (occassions) {
-      // const occassionsArray = occassions.split(",");
-      console.log("Occassions: ", occassions);
+      const occassionsArray = occassions.split(",");
+      // console.log("Occassions: ", occassions);
       // TODO: Query
       dbQuery = dbQuery.where("occasion", "=", occassions);
     }
 
     if (discount) {
-      console.log("Discount: ", discount.split("-")[1]);
+      // console.log("Discount: ", discount.split("-")[1]);
       const start = +discount.split("-")[0];
       const end = +discount.split("-")[1];
 
@@ -71,12 +88,13 @@ export async function getProducts(
 
     if (sortBy) {
       const [column, order] = sortBy.split("-");
-      console.log(column, order);
+      // console.log(column, order);
       dbQuery = dbQuery.orderBy(column, order);
     }
-    console.log(dbQuery);
+    // console.log(dbQuery);
 
     const countResult = await dbQuery.execute();
+    // bad approach bcoz we have to execute query twice but cannot find anything in kysely and due to time constraints currently I am using it but i'll optimize it later
     // const countResult = dbQuery
     //   .where(priceRangeTo !== undefined ? "price <= " + priceRangeTo : sql`1=1`) // Apply same filters
     //   .where(gender ? "gender = " + gender : sql`1=1`)
@@ -96,6 +114,7 @@ export async function getProducts(
       .execute();
 
     const numOfResultsOnCurPage = products.length;
+    // console.log("product: ", products);
 
     return { products, count, lastPage, numOfResultsOnCurPage };
   } catch (error) {
@@ -188,6 +207,8 @@ export async function getAllProductCategories(products: any) {
         .select("categories.name")
         .where("product_categories.product_id", "=", productId)
         .execute();
+      console.log("Categories: ", categories);
+
       categoriesMap.set(productId, categories);
     }
     return categoriesMap;
@@ -219,6 +240,7 @@ export async function addProduct(productData: Products): {
   insertId: number | bigint;
 } {
   console.log("ProductData: ", productData);
+
   const {
     name,
     description,
@@ -232,7 +254,7 @@ export async function addProduct(productData: Products): {
     occasion,
     image_url,
   } = productData;
-  console.log("name:", name);
+  console.log("brands:", brands, typeof brands);
 
   try {
     const add = await db
@@ -255,7 +277,46 @@ export async function addProduct(productData: Products): {
 
     return {
       insertId: add.insertId,
+      success: true,
+      message: "product added successfully",
     };
+  } catch (error) {
+    throw error;
+  }
+}
+
+// Function to insert multiple rows into product_categories
+export async function insertProductCategories(
+  input: InsertProductCategoriesInput
+) {
+  const { product_id, category_ids } = input;
+
+  // Prepare the array of values to be inserted
+  const values = category_ids.map((category_id) => ({
+    product_id,
+    category_id,
+  }));
+
+  try {
+    // Perform the batch insert
+    await db.insertInto("product_categories").values(values).execute();
+
+    return { success: true, message: "Categories added successfully" };
+  } catch (error) {
+    console.error("Error inserting product categories:", error);
+    throw new Error("Failed to insert product categories");
+  }
+}
+
+export async function updateProduct(productId: number, updatedData: Products) {
+  try {
+    const result = await db
+      .updateTable("products")
+      .set(updatedData) // Set the new values for the columns
+      .where("id", "=", productId) // condition to find the rows to update
+      .executeTakeFirst(); // Execute the query and take the first result
+
+    return { success: true, message: "Products updated successfully" };
   } catch (error) {
     throw error;
   }

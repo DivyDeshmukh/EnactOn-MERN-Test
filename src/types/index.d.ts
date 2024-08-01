@@ -116,3 +116,8 @@ export interface Database {
   reviews: Reviews;
   users: Users;
 }
+
+export interface InsertProductCategoriesInput {
+  product_id: number;
+  category_ids: number[];
+}
