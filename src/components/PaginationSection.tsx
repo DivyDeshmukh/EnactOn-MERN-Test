@@ -30,10 +30,9 @@ function PaginationSection({
   }
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    console.log(e.target.value);
+    // console.log(e.target.value);
     searchParams.delete("page");
     searchParams.set("pageSize", e.target.value);
-    // searchParams.set("lastPage", `${totalProducts / pageSize}`); // totalResults/CurrPageResults
     router.push(`/products?${searchParams.toString()}`);
   };
 

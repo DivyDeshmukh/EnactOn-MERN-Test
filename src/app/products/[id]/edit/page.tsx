@@ -61,21 +61,21 @@ function EditProduct({ params }: { params: { id: string } }) {
     validationSchema: basicSchema,
 
     onSubmit: async (values, actions) => {
-      console.log(values);
+      // console.log(values);
       const { categories, ...modifiedValues } = values;
 
       try {
         const response = await updateProduct(id, {
           ...modifiedValues,
           price: values.old_price - (values.old_price * values.discount) / 100,
-          brands: `[${values.brands.map((brand) => brand.value).join(",")}]`,
+          brands: JSON.stringify(values.brands.map((brand) => brand.value)),
           occasion: values.occasion.map((option) => option.value).join(", "),
         });
         if (!response) {
           toast.error("Error: Unable to update the product, please try again");
           return;
         }
-        console.log(response);
+        // console.log(response);
         toast.success("Product edited successfully");
         router.push(`/products`);
       } catch (error) {

@@ -109,7 +109,8 @@ function Filter({ categories, brands }) {
   });
 
   const [discountSelected, setDiscountSelected] = useState(() => {
-    return searchParams.get("discount") || "";
+    const value = searchParams.get("discount");
+    return discountOptions.filter((option) => option.value === value);
   });
 
   const [sliderChanged, setSliderChanged] = useState(false);
@@ -155,10 +156,11 @@ function Filter({ categories, brands }) {
 
   useEffect(() => {
     if (sliderChanged) {
-      console.log(sliderChanged);
+      // console.log(sliderChanged);
 
       const handler = setTimeout(() => {
         // setSliderValue(tempSliderValue);
+        // deleting page & pageSize everytime to reset prev. page settings
         searchParams.delete("page");
         searchParams.delete("pageSize");
         setSliderChanged(false);
@@ -182,7 +184,7 @@ function Filter({ categories, brands }) {
   }, [selectedGender]);
 
   function handleBrandsSelect(selectedOption: any, actionMeta: any) {
-    console.log(selectedOption, actionMeta);
+    // console.log(selectedOption, actionMeta);
     if (selectedOption.length === 0) {
       searchParams.delete("brandId");
       setBrandSelected(selectedOption);
@@ -203,13 +205,10 @@ function Filter({ categories, brands }) {
   }
 
   function handleCategoriesSelected(selectedOption: any, actionMeta: any) {
-    console.log(selectedOption.length, actionMeta);
+    // console.log(selectedOption.length, actionMeta);
     if (selectedOption.length === 0) {
-      // console.log("Length: ", selectedOption);
       setCategoriesSelected(selectedOption);
-      // console.log("Length: ", categoriesSelected);
       searchParams.delete("categoryId");
-      // console.log("SearchParams: ", searchParams);
       router.push(`/products?${searchParams.toString()}`, { scroll: false });
       return;
     }
@@ -232,7 +231,7 @@ function Filter({ categories, brands }) {
   const handleGenderChange = (e: ChangeEvent<HTMLInputElement>) => {
     const selectedVal = e.target.value;
     if (!selectedVal) {
-      console.log(typeof e.target.value);
+      // console.log(typeof e.target.value);
       searchParams.delete("gender");
       setSelectedGender(selectedVal);
       router.push(`/products?${searchParams.toString()}`, { scroll: false });
@@ -242,7 +241,7 @@ function Filter({ categories, brands }) {
   };
 
   function handleOccasions(selectedOption: any, actionMeta: any) {
-    console.log(selectedOption);
+    // console.log(selectedOption);
 
     if (selectedOption.length === 0) {
       searchParams.delete("occassions");
@@ -262,7 +261,7 @@ function Filter({ categories, brands }) {
   }
 
   function handleDiscount(selectedOption: any, actionMeta: any) {
-    console.log("Discount: ", selectedOption);
+    // console.log("Discount: ", selectedOption);
     if (!selectedOption.value) {
       searchParams.delete("discount");
       setDiscountSelected(selectedOption);

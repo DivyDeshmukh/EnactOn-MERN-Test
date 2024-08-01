@@ -36,12 +36,9 @@ export default async function Products({
     discount,
     sortBy
   );
-  // console.log("SearchParms: ", priceRangeTo);
-  console.log();
 
   const brands = await getBrands();
   const categories = await getCategories();
-  console.log(products.length, pageSize);
 
   return (
     <div className="pb-20 pt-8">

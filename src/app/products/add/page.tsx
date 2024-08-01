@@ -44,21 +44,23 @@ function AddProduct() {
     validationSchema: basicSchema,
 
     onSubmit: async (values: any, actions) => {
-      console.log(values);
+      // console.log(values);
+      // taking categories out bcoz products table do not have that column
       const { categories, ...modifiedValues } = values;
       const addProd = await addProduct({
         ...modifiedValues,
-        price: values.old_price - (values.old_price * values.discount) / 100,
-        brands: JSON.stringify(values.brands.map((brand) => brand.value)),
-        occasion: values.occasion.map((option) => option.value).join(","),
+        price: values.old_price - (values.old_price * values.discount) / 100, // price after discount on old_price
+        brands: JSON.stringify(values.brands.map((brand) => brand.value)), // as the type in Products interface is string and storing arrays directly is not a good practice
+        occasion: values.occasion.map((option) => option.value).join(","), // occasion also has the type string
       });
       if (!addProd) {
         toast.error("Error:- Failed to add product. Please Try Again");
         return;
       }
-      console.log(addProd);
+      // console.log(addProd);
       const categoryIds = categories.map((category) => category.value);
       const productId = Number(addProd.insertId);
+      // we are calling insertProductCategories to add product category in product_categories table
       const addCategories = await insertProductCategories({
         category_ids: categoryIds,
         product_id: productId,

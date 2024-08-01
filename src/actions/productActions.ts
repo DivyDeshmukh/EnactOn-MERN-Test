@@ -34,7 +34,7 @@ export async function getProducts(
     }
 
     if (categoryIds) {
-      console.log(categoryIds);
+      // console.log(categoryIds);
 
       const categoryIdsArray = categoryIds
         .split(",")
@@ -52,7 +52,8 @@ export async function getProducts(
     }
 
     if (brandIds) {
-      // Add the dynamic JSON_CONTAINS conditions
+      const brandsIdArray = brandIds.split(",");
+      // here the issue was orWhere bcoz it is not working and if we just use 'where' then it will attach multiple 'where' based on brandIds but they will be chained in AND Operation
       // brandIdsArray.forEach((value, index) => {
       //   if (index === 0) {
       //     dbQuery = dbQuery.where(sql`JSON_CONTAINS(brands, ${value}, '$')`);
@@ -60,11 +61,10 @@ export async function getProducts(
       //     dbQuery = dbQuery.orWhere(sql`JSON_CONTAINS(brands, ${value}, '$')`);
       //   }
       // });
-      const brandIdsArray = brandIds.split(",").map((id) => id.trim());
-      // console.log("BrandsIdsArray: ", brandIdsArray);
-      brandIdsArray.forEach((id) => {
-        dbQuery = dbQuery.where(sql`JSON_CONTAINS(brands, (${id}), '$')`);
-      });
+      const conditions = brandsIdArray
+        .map((id) => sql`FIND_IN_SET(${id}, brands) > 0`)
+        .reduce((prev, curr) => sql`${prev} OR ${curr}`);
+      dbQuery = dbQuery.where(conditions);
     }
 
     if (gender) {
@@ -74,8 +74,10 @@ export async function getProducts(
     if (occassions) {
       const occassionsArray = occassions.split(",");
       // console.log("Occassions: ", occassions);
-      // TODO: Query
-      dbQuery = dbQuery.where("occasion", "=", occassions);
+      const conditions = occassionsArray
+        .map((occas) => sql`FIND_IN_SET(${occas}, occasion) > 0`)
+        .reduce((prev, curr) => sql`${prev} OR ${curr}`);
+      dbQuery = dbQuery.where(conditions);
     }
 
     if (discount) {
@@ -91,10 +93,9 @@ export async function getProducts(
       // console.log(column, order);
       dbQuery = dbQuery.orderBy(column, order);
     }
-    // console.log(dbQuery);
 
     const countResult = await dbQuery.execute();
-    // bad approach bcoz we have to execute query twice but cannot find anything in kysely and due to time constraints currently I am using it but i'll optimize it later
+    // bad approach bcoz we have to execute query twice but cannot find anything in kysely and due to time constraints currently I am using it but i'll optimize it later, the below query is not working as expected so now going with execute.
     // const countResult = dbQuery
     //   .where(priceRangeTo !== undefined ? "price <= " + priceRangeTo : sql`1=1`) // Apply same filters
     //   .where(gender ? "gender = " + gender : sql`1=1`)
@@ -105,7 +106,6 @@ export async function getProducts(
     const count = countResult.length || 0;
 
     const lastPage = Math.ceil(count / pageSize);
-    console.log("Count:", countResult.length + 1, "lastPage: ", lastPage);
 
     products = await dbQuery
       .distinct()
@@ -115,6 +115,7 @@ export async function getProducts(
 
     const numOfResultsOnCurPage = products.length;
     // console.log("product: ", products);
+    // console.log("Count:", products[0].brands, "lastPage: ", lastPage);
 
     return { products, count, lastPage, numOfResultsOnCurPage };
   } catch (error) {
@@ -207,7 +208,7 @@ export async function getAllProductCategories(products: any) {
         .select("categories.name")
         .where("product_categories.product_id", "=", productId)
         .execute();
-      console.log("Categories: ", categories);
+      // console.log("Categories: ", categories);
 
       categoriesMap.set(productId, categories);
     }
@@ -239,7 +240,7 @@ export async function getProductCategories(productId: number) {
 export async function addProduct(productData: Products): {
   insertId: number | bigint;
 } {
-  console.log("ProductData: ", productData);
+  // console.log("ProductData: ", productData);
 
   const {
     name,
@@ -254,7 +255,7 @@ export async function addProduct(productData: Products): {
     occasion,
     image_url,
   } = productData;
-  console.log("brands:", brands, typeof brands);
+  // console.log("brands:", brands, typeof brands);
 
   try {
     const add = await db
@@ -273,7 +274,8 @@ export async function addProduct(productData: Products): {
         image_url,
       })
       .executeTakeFirst();
-    console.log("add: ", add);
+    // after adding or inserting product in products table we will get the  first result or undefined if the query returned no result.
+    // console.log("add: ", add);
 
     return {
       insertId: add.insertId,
@@ -287,7 +289,7 @@ export async function addProduct(productData: Products): {
 
 // Function to insert multiple rows into product_categories
 export async function insertProductCategories(
-  input: InsertProductCategoriesInput
+  input: InsertProductCategoriesInput // this is an interface defined in types -> index.d.ts
 ) {
   const { product_id, category_ids } = input;
 
@@ -296,9 +298,9 @@ export async function insertProductCategories(
     product_id,
     category_id,
   }));
-
+  // values basically contains the data that we want to insert in product_categories table.
   try {
-    // Perform the batch insert
+    // Perform the insert operation
     await db.insertInto("product_categories").values(values).execute();
 
     return { success: true, message: "Categories added successfully" };

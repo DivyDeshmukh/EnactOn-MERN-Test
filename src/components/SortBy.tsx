@@ -16,15 +16,12 @@ const sortingOptions = [
 function SortBy() {
   const router = useRouter();
   const searchParams = useQueryParams();
-  const [selectedOption, setSelectedOption] = useState(() => {
-    if (searchParams.get("sortBy")) {
-      console.log(searchParams.get("sortBy"));
-      return searchParams.get("sortBy") || "";
-    }
-  });
+  const [selectedOption, setSelectedOption] = useState(
+    () => searchParams.get("sortBy") || ""
+  );
 
   const handleChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    console.log(e.target.value);
+    // console.log(e.target.value);
     const selectedVal = e.target.value;
     if (!selectedVal) {
       searchParams.delete("sortBy");
@@ -36,8 +33,7 @@ function SortBy() {
     setSelectedOption(e.target.value);
     searchParams.delete("page");
     searchParams.delete("pageSize");
-    const sortCondition = selectedVal;
-    searchParams.set("sortBy", sortCondition);
+    searchParams.set("sortBy", selectedVal);
     router.push(`/products?${searchParams.toString()}`);
   };
 
